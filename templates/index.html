@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarX Street // Cyberpunk Control Hub</title>
+    <link rel="stylesheet" href="/static/css/gamer_style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏎️</text></svg>">
+</head>
+<body>
+    <!-- Cyber Background Canvas & Scanlines -->
+    <canvas id="cyber-canvas"></canvas>
+    <div class="scanlines"></div>
+    <div class="crt-vignette"></div>
+
+    <div class="app-container">
+        <!-- HUD Header -->
+        <header class="hud-header">
+            <div class="brand-section">
+                <div class="brand-logo">🏎️</div>
+                <div>
+                    <h1 class="brand-title">CARX STREET</h1>
+                    <div class="brand-subtitle">
+                        <span class="status-dot"></span> CYBER HUB // VER 2.0 // FOUNDER: @KING_MINGFU
+                    </div>
+                </div>
+            </div>
+
+            <div class="hud-actions">
+                <div id="license-badge" class="license-badge">STATUS: CHECKING...</div>
+                <button id="sound-toggle-btn" class="hud-btn">🔊 Sound: ON</button>
+                <button id="admin-btn" class="hud-btn admin-btn" style="display: none;">👑 Admin Portal</button>
+            </div>
+        </header>
+
+        <!-- ============================================================
+             SECTION: AUTH GATEWAY (LOGIN & BLUEPRINT REGISTER)
+             ============================================================ -->
+        <section id="auth-section" class="auth-panel" style="display: none;">
+            <div class="cyber-card">
+                <div class="card-header">
+                    <h2 class="card-title"><span class="icon">⚡</span> ACCESS GATEWAY</h2>
+                    <span style="font-family: var(--font-mono); font-size: 12px; color: var(--neon-cyan);">CARX ONLINE CLOUD</span>
+                </div>
+
+                <div class="tab-nav">
+                    <button id="tab-login" class="tab-btn active">🔓 LOGIN & SYNC</button>
+                    <button id="tab-register" class="tab-btn">📦 BLUEPRINT REGISTER</button>
+                </div>
+
+                <!-- Login Form -->
+                <div id="form-login">
+                    <div class="input-group">
+                        <label class="input-label">EMAIL ADDRESS</label>
+                        <input id="login-email" type="email" class="cyber-input" placeholder="pilot@carxstreet.com" autocomplete="email">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">ACCESS PASSWORD</label>
+                        <input id="login-password" type="password" class="cyber-input" placeholder="••••••••••••" autocomplete="current-password">
+                    </div>
+                    <button id="login-btn" class="cyber-btn">INITIALIZE LOGIN</button>
+                    <p style="margin-top: 14px; font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); text-align: center;">
+                        ⚠️ Always make sure CarX Street is closed on your phone before editing.
+                    </p>
+                </div>
+
+                <!-- Register Form -->
+                <div id="form-register" style="display: none;">
+                    <div class="input-group">
+                        <label class="input-label">NEW ACCOUNT EMAIL</label>
+                        <input id="reg-email" type="email" class="cyber-input" placeholder="newpilot@carxstreet.com" autocomplete="email">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">NEW ACCOUNT PASSWORD</label>
+                        <input id="reg-password" type="password" class="cyber-input" placeholder="••••••••••••" autocomplete="new-password">
+                    </div>
+                    <button id="register-btn" class="cyber-btn magenta-btn">CREATE ACCOUNT & INJECT BLUEPRINT</button>
+                    <p style="margin-top: 14px; font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); text-align: center;">
+                        ✨ Instantly provisions a fresh account with max blueprint data pre-injected.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SECTION: MAIN DASHBOARD & BOOST HUB
+             ============================================================ -->
+        <section id="dashboard-section" style="display: none;">
+            <!-- User Status Top Bar -->
+            <div class="cyber-card" style="padding: 16px 24px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <span style="font-family: var(--font-mono); font-size: 13px; color: var(--text-muted);">ACTIVE PILOT: </span>
+                        <b id="hud-user-email" style="color: var(--neon-cyan); font-family: var(--font-mono);">--</b>
+                        <span style="margin: 0 8px; color: rgba(255,255,255,0.2);">|</span>
+                        <span style="font-family: var(--font-mono); font-size: 13px; color: var(--text-muted);">CARX ID: </span>
+                        <b id="hud-user-carxid" style="color: var(--neon-amber); font-family: var(--font-mono);">--</b>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="refresh-profile-btn" class="hud-btn">🔄 Refresh Stats</button>
+                        <button id="logout-btn" class="hud-btn" style="border-color: rgba(255, 0, 85, 0.4); color: var(--neon-magenta);">🚪 Disconnect</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Stats Gauges Grid -->
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">💰 Silver Currency</div>
+                    <div id="val-silver" class="stat-value silver" data-val="0">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">💛 Gold Coins</div>
+                    <div id="val-gold" class="stat-value gold" data-val="0">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">⭐ Experience Points</div>
+                    <div id="val-xp" class="stat-value xp" data-val="0">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">🗺️ World Maps</div>
+                    <div id="val-maps" class="stat-value" style="color: var(--neon-green);">0 / 6</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">🚗 Garage Fleet</div>
+                    <div id="val-cars" class="stat-value cars">0</div>
+                </div>
+            </div>
+
+            <!-- Pass Badges Bar -->
+            <div style="margin-bottom: 24px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <span id="badge-streetpass" class="badge-pill red">STREET PASS: LOCKED</span>
+                <span id="badge-premium" class="badge-pill red">PREMIUM: NONE</span>
+            </div>
+
+            <!-- GOD MODE (ALL-IN-ONE) HERO BANNER -->
+            <div class="cyber-card magenta-edge" style="text-align: center; padding: 30px;">
+                <h2 style="font-family: var(--font-display); font-size: 22px; margin-bottom: 8px; letter-spacing: 2px;">⚡ GOD MODE OVERDRIVE ⚡</h2>
+                <p style="color: var(--text-muted); font-family: var(--font-mono); font-size: 14px; margin-bottom: 20px;">
+                    Simultaneously unlocks all world sectors, maxes Silver (50M), Gold (9,999), XP (999k), and full Street Pass with Elite Pass flags.
+                </p>
+                <button id="god-mode-btn" class="cyber-btn god-mode-btn">
+                    ⚡ ENGAGE ALL-IN-ONE OVERDRIVE ⚡
+                </button>
+            </div>
+
+            <!-- Individual Booster Actions Grid -->
+            <div class="actions-grid">
+                <!-- Card 1: Currency Overclock -->
+                <div class="cyber-card">
+                    <div class="card-header">
+                        <h3 class="card-title"><span class="icon">💎</span> CURRENCY INJECTION</h3>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+                        Overclock your account balances with safe server-approved increments.
+                    </p>
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+                        <button id="boost-curr-max" class="cyber-btn">
+                            💎 MAX PACK (50M Silver, 9,999 Gold, 999k XP)
+                        </button>
+                        <button id="boost-curr-med" class="cyber-btn amber-btn">
+                            🥈 MEDIUM PACK (10M Silver, 5,000 Gold, 100k XP)
+                        </button>
+                    </div>
+                    <!-- Custom inputs -->
+                    <details style="margin-top: 10px; font-family: var(--font-mono); font-size: 13px;">
+                        <summary style="color: var(--neon-cyan); cursor: pointer; margin-bottom: 12px;">Custom Injection Values</summary>
+                        <div class="input-group">
+                            <label class="input-label">SILVER</label>
+                            <input id="custom-silver" type="number" class="cyber-input" value="50000000">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">GOLD</label>
+                            <input id="custom-gold" type="number" class="cyber-input" value="9999">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">XP</label>
+                            <input id="custom-xp" type="number" class="cyber-input" value="999999">
+                        </div>
+                        <button id="boost-curr-custom-btn" class="cyber-btn magenta-btn" style="margin-top: 8px;">
+                            INJECT CUSTOM VALUES
+                        </button>
+                    </details>
+                </div>
+
+                <!-- Card 2: World Map & Real Estate -->
+                <div class="cyber-card">
+                    <div class="card-header">
+                        <h3 class="card-title"><span class="icon">🗺️</span> MAP & REAL ESTATE</h3>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;">
+                        Unlock all 6 territories and grant full ownership of all 50+ luxury apartments with 3 unlocked car slots each.
+                    </p>
+                    <div class="sector-pills">
+                        <div class="sector-tag">🏢 Industrial</div>
+                        <div class="sector-tag">🏙️ Midtown</div>
+                        <div class="sector-tag">🏡 Suburb</div>
+                        <div class="sector-tag">⚓ Port</div>
+                        <div class="sector-tag">⛰️ Mountain</div>
+                        <div class="sector-tag">🌅 Sunset Speedway</div>
+                    </div>
+                    <button id="boost-maps-btn" class="cyber-btn">
+                        🗺️ UNLOCK ALL MAPS & REAL ESTATE
+                    </button>
+                </div>
+
+                <!-- Card 3: Vehicle Implantation -->
+                <div class="cyber-card">
+                    <div class="card-header">
+                        <h3 class="card-title"><span class="icon">🚗</span> VEHICLE IMPLANTER</h3>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+                        Directly inject calibrated car blueprints into your garage.
+                    </p>
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+                        <button id="boost-cars-all" class="cyber-btn">
+                            📦 INJECT ALL VEHICLES
+                        </button>
+                        <button id="boost-cars-random" class="cyber-btn amber-btn">
+                            🎲 INJECT 10 RANDOM VEHICLES
+                        </button>
+                        <button id="boost-cars-50" class="cyber-btn magenta-btn">
+                            🔢 INJECT 50 VEHICLES BATCH
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input id="custom-cars-count" type="number" class="cyber-input" style="width: 110px;" placeholder="Count" value="15" min="1" max="100">
+                        <button id="boost-cars-custom-btn" class="cyber-btn" style="flex: 1;">
+                            INJECT SPECIFIC COUNT
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 4: Street Pass & Elite Pass -->
+                <div class="cyber-card">
+                    <div class="card-header">
+                        <h3 class="card-title"><span class="icon">🎟️</span> STREET PASS OVERRIDE</h3>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+                        Automates purchase verification bypass with CarX verification servers and inflates Battle Pass points to 1,000,000.
+                    </p>
+                    <ul style="color: var(--text-muted); font-family: var(--font-mono); font-size: 13px; margin-bottom: 20px; padding-left: 20px; line-height: 1.8;">
+                        <li>Battle Pass points: 1,000,000</li>
+                        <li>Event Points & EP/BP resources: Max</li>
+                        <li>Premium Active & Max Player: True</li>
+                        <li>Unlimited Premium Timer Enabled</li>
+                    </ul>
+                    <button id="boost-sp-btn" class="cyber-btn amber-btn">
+                        🎟️ UNLOCK & MAX STREET PASS
+                    </button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ============================================================
+         MODAL: LICENSE KEY GATE
+         ============================================================ -->
+    <div id="key-gate-modal" class="cyber-modal">
+        <div class="modal-content">
+            <div style="text-align: center; margin-bottom: 24px;">
+                <div style="font-size: 40px; margin-bottom: 10px;">🔑</div>
+                <h2 style="font-family: var(--font-display); font-size: 22px; color: #fff; letter-spacing: 2px;">ACCESS KEY REQUIRED</h2>
+                <p style="color: var(--text-muted); font-family: var(--font-mono); font-size: 13px; margin-top: 6px;">
+                    Enter your activation license key or master key to unlock the portal.
+                </p>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">LICENSE KEY / MASTER KEY</label>
+                <input id="license-key-input" type="text" class="cyber-input" placeholder="CARX-XXXX-XXXX-XXXX" style="text-align: center; font-size: 18px; letter-spacing: 2px;">
+            </div>
+
+            <button id="key-submit-btn" class="cyber-btn" style="margin-top: 10px;">
+                ACTIVATE ACCESS
+            </button>
+            <p style="text-align: center; font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); margin-top: 16px;">
+                Keys are managed in <code>keys_db.json</code>. Master keys accepted.
+            </p>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MODAL: ADMIN KEY MANAGER
+         ============================================================ -->
+    <div id="admin-modal" class="cyber-modal">
+        <div class="modal-content" style="max-width: 680px;">
+            <button id="admin-modal-close" class="modal-close">&times;</button>
+            <div style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
+                <h2 style="font-family: var(--font-display); font-size: 20px; color: var(--neon-amber);">👑 ADMIN KEY PORTAL</h2>
+                <p style="color: var(--text-muted); font-family: var(--font-mono); font-size: 12px;">
+                    Generate, revoke, and inspect license keys in <code>keys_db.json</code>.
+                </p>
+            </div>
+
+            <!-- Key Generation Buttons -->
+            <div style="margin-bottom: 20px;">
+                <div class="input-label">GENERATE NEW LICENSE KEYS</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                    <button class="hud-btn admin-gen-btn" data-duration="1time">🔑 1-Time Use Key</button>
+                    <button class="hud-btn admin-gen-btn" data-duration="1d">🔑 1 Day Key</button>
+                    <button class="hud-btn admin-gen-btn" data-duration="30d">🔑 30 Days Key</button>
+                    <button class="hud-btn admin-gen-btn" data-duration="lifetime">🔑 Lifetime Key</button>
+                </div>
+            </div>
+
+            <!-- Revoke Key -->
+            <div style="margin-bottom: 20px;">
+                <div class="input-label">REVOKE LICENSE KEY</div>
+                <div style="display: flex; gap: 8px;">
+                    <input id="admin-revoke-key" type="text" class="cyber-input" placeholder="CARX-XXXX-XXXX-XXXX">
+                    <button id="admin-revoke-btn" class="hud-btn" style="border-color: var(--neon-magenta); color: var(--neon-magenta);">
+                        Revoke
+                    </button>
+                </div>
+            </div>
+
+            <!-- Clear Claimed & Key List -->
+            <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <div class="input-label" style="margin: 0;">ACTIVE DATABASE KEYS</div>
+                <button id="admin-clear-claimed-btn" class="hud-btn" style="font-size: 11px; padding: 4px 8px;">
+                    🧹 Clear Claimed
+                </button>
+            </div>
+            <div id="admin-keys-list" style="max-height: 220px; overflow-y: auto; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                Loading keys...
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="/static/js/cyber_effects.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
