@@ -206,21 +206,25 @@ def api_auth_register(payload: AuthRegisterRequest, request: Request):
     if not ok:
         raise HTTPException(status_code=400, detail=f"Registration failed: {err}")
     
-    # Inject blueprint profile
-    ok_save, err_save = carx_engine.save_profile(token, blueprint)
+    # Tailor blueprint to this specific account (carx_id, nickname, anti-ghost spawn):
+    nickname = email.split('@')[0]
+    fresh_profile = carx_engine.prepare_fresh_profile(blueprint, carx_id, nickname)
+    
+    # Inject prepared profile into CarX Street server
+    ok_save, err_save = carx_engine.save_profile(token, fresh_profile)
     if not ok_save:
-        raise HTTPException(status_code=500, detail=f"Account created, but blueprint injection failed: {err_save}")
+        raise HTTPException(status_code=500, detail=f"Account created, but profile initialization failed: {err_save}")
     
     session["token"] = token
     session["carx_id"] = str(carx_id)
     session["email"] = email
-    session["profile"] = blueprint
+    session["profile"] = fresh_profile
     
     carx_engine.consume_one_time_key_if_applicable(session["user_identifier"])
     
     return {
         "success": True,
-        "message": f"🎉 Account created & Blueprint injected successfully! CarX ID: {carx_id}",
+        "message": f"🎉 Account created & Profile initialized successfully! CarX ID: {carx_id}",
         "carx_id": carx_id,
         "email": email
     }
@@ -241,7 +245,17 @@ def api_auth_login(payload: AuthLoginRequest, request: Request):
     
     profile, err_prof = carx_engine.get_profile(token)
     if not profile:
-        raise HTTPException(status_code=400, detail=f"Profile sync failed: {err_prof}. Please launch the game at least once.")
+        # If the account has no profile on the server yet (fresh account), initialize it automatically
+        if err_prof == "empty_profile":
+            bp = carx_engine.get_blueprint_profile()
+            if bp:
+                profile = carx_engine.prepare_fresh_profile(bp, carx_id, email.split('@')[0])
+                ok_init, _ = carx_engine.save_profile(token, profile)
+                if not ok_init:
+                    profile = None
+        
+        if not profile:
+            raise HTTPException(status_code=400, detail=f"Profile sync failed: {err_prof}. Please launch the game at least once or use the Repair tool.")
     
     session["token"] = token
     session["carx_id"] = str(carx_id)
@@ -250,10 +264,43 @@ def api_auth_login(payload: AuthLoginRequest, request: Request):
     
     return {
         "success": True,
-        "message": "✅ Connected to CarX Street servers!",
+        "message": "✅ Connected to CarX Street servers! Profile synced.",
         "carx_id": carx_id,
         "email": email
     }
+
+@app.post("/api/profile/repair")
+def api_profile_repair(request: Request):
+    session = get_session(request)
+    require_login(session)
+    
+    token = session["token"]
+    carx_id = session.get("carx_id") or "1000"
+    nickname = session.get("email", "Player").split('@')[0]
+    
+    ok, res = carx_engine.repair_account_profile(token, carx_id, nickname)
+    if not ok:
+        raise HTTPException(status_code=500, detail=f"Repair failed: {res}")
+    
+    session["profile"] = res
+    return {
+        "success": True,
+        "message": f"🔧 Account repaired! Restored working profile with all maps and anti-ghost spawn.",
+        "profile": res
+    }
+
+@app.get("/api/profile/sync")
+def api_profile_sync(request: Request):
+    session = get_session(request)
+    if not session.get("token"):
+        raise HTTPException(status_code=401, detail="Please login first.")
+    
+    profile, err = carx_engine.get_profile(session["token"])
+    if not profile:
+        raise HTTPException(status_code=400, detail=f"Failed to sync profile from server: {err}")
+    
+    session["profile"] = profile
+    return {"success": True, "message": "✅ Profile re-synced from CarX Street servers."}
 
 @app.post("/api/auth/logout")
 def api_auth_logout(request: Request):

@@ -555,6 +555,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
+    // PROFILE RE-SYNC & REPAIR (ANTI-FREEZE / ANTI-GHOST)
+    // ============================================================
+    document.getElementById('btn-sync-profile')?.addEventListener('click', async () => {
+        window.CyberAudio.playClick();
+        showToast('🔄 Re-syncing profile directly from CarX servers...', 'info');
+        try {
+            const res = await fetch('/api/profile/sync');
+            const data = await res.json();
+            if (res.ok) {
+                showToast(data.message, 'success');
+                window.CyberAudio.playSuccess();
+                checkProfileStatus();
+            } else {
+                showToast(data.detail || 'Failed to sync profile.', 'error');
+                window.CyberAudio.playError();
+            }
+        } catch (e) {
+            showToast('Network error syncing profile.', 'error');
+        }
+    });
+
+    document.getElementById('btn-repair-profile')?.addEventListener('click', async () => {
+        if (!confirm('🔧 Repair Account Profile?\n\nThis will unfreeze corrupted profiles, unlock all maps, restore anti-ghost world spawn, and reset account state back to a clean working condition.')) return;
+        window.CyberAudio.playWarp();
+        showToast('🔧 REBUILDING CLEAN PROFILE & PURGING CORRUPTION...', 'info');
+        try {
+            const res = await fetch('/api/profile/repair', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                showToast(data.message, 'success');
+                window.CyberAudio.playSuccess();
+                checkProfileStatus();
+            } else {
+                showToast(data.detail || 'Repair failed.', 'error');
+                window.CyberAudio.playError();
+            }
+        } catch (e) {
+            showToast('Network error repairing profile.', 'error');
+            window.CyberAudio.playError();
+        }
+    });
+
+    // ============================================================
     // NEW DEDICATED ADMIN COMMAND CENTER LOGIC
     // ============================================================
     async function loadAdminCommandCenter() {

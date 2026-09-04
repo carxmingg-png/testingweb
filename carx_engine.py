@@ -20,6 +20,7 @@ import string
 import shutil
 import requests
 from datetime import datetime
+import copy
 
 # ============================================================
 # API ENDPOINTS & CONSTANTS
@@ -471,13 +472,107 @@ def get_profile(token):
     try:
         r = requests.get(PROFILE_URL, headers=headers, timeout=TIMEOUT)
         if r.status_code == 200:
-            data = r.json()['d']['data']
-            compressed = data['compressed_data']
-            raw = base64.b64decode(compressed)
-            return json.loads(gzip.decompress(raw[4:])), None
+            d = r.json().get('d', {}).get('data', {})
+            b64 = d.get('compressed_data')
+            if b64:
+                raw = base64.b64decode(b64)
+                return json.loads(gzip.decompress(raw[4:])), None
+            # Fresh account with no profile on server yet
+            return None, "empty_profile"
         return None, f"HTTP {r.status_code}"
     except Exception as e:
         return None, str(e)
+
+def prepare_fresh_profile(template, carx_id, nickname):
+    """
+    Configures a clean, working base profile (with anti-ghost spawn and anti-freeze flags),
+    matching build_profile in car_x_street_underground.py.
+    """
+    p = copy.deepcopy(template)
+    for k in ['nickname', 'carx_id', 'date_time', 'id', 'user_id', 'carxId', 'email',
+              'device_id', 'device_unique_id', 'created_at', 'updated_at']:
+        p.pop(k, None)
+
+    p['nickname'] = nickname
+    p['carx_id'] = str(carx_id)
+    p['date_time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    # Anti-Freeze & Anti-Ghost Mode Flags
+    p['is_tutorial_finished'] = True
+    p['tutorial_step'] = 100
+    p['is_first_start_finished'] = True
+    p['is_actual_clubs_send'] = True
+    p['has_completed_tutorial'] = True
+    p['has_seen_intro'] = True
+    p['has_seen_map_tutorial'] = True
+    p['onboarding_completed'] = True
+    p['is_new_player'] = False
+    p['has_first_drive'] = True
+    p['has_completed_onboarding'] = True
+    p['show_map_on_start'] = False
+    p['data_version'] = 73
+    p['messaging_version'] = 13
+    p['model_upgrade_version'] = 1
+
+    # World spawn position to prevent black screen / ghost view
+    p.setdefault('player_position', {
+        'x': -123.45, 'y': 12.3, 'z': 456.78,
+        'rot_x': 0.0, 'rot_y': 180.0, 'rot_z': 0.0,
+        'map': 'industrial'
+    })
+    p['last_map'] = 'industrial'
+    p['current_map'] = 'industrial'
+
+    # Profile customizer defaults
+    p.setdefault('profile', {})
+    p['profile']['nickname'] = nickname
+    p['profile'].setdefault('avatar', 'avatar_default')
+    p['profile'].setdefault('banner', 'banner_default')
+    p['profile'].setdefault('frame', 'frame_default')
+
+    # Active Car Check: ensure current_car_id is a car that exists in cars.items
+    existing_cars = p.get('cars', {}).get('items', {})
+    if existing_cars:
+        if str(p.get('current_car_id')) not in existing_cars:
+            p['current_car_id'] = next(iter(existing_cars.keys()))
+    
+    # Premium & Street Pass flags
+    p['has_premium'] = True
+    p['is_premium_active'] = True
+    p['is_premium_max_player'] = True
+    p['premium_timer'] = 99999999
+    p['premium_length'] = 99999999
+    p['is_pass_owned'] = True
+    p['battle_pass_resource_amount'] = 999999
+
+    return p
+
+def repair_account_profile(token, carx_id, nickname=None):
+    """
+    Rebuilds and uncorrupts an account back to a fully working state (anti-ghost, anti-freeze),
+    matching repair_mode in car_x_street_underground.py.
+    """
+    if not nickname:
+        nickname = f"Driver{random.randint(1000, 9999)}"
+    bp = get_blueprint_profile()
+    if not bp:
+        return False, "Blueprint not available on server"
+    
+    clean_profile = prepare_fresh_profile(bp, carx_id, nickname)
+    # Unlock all maps
+    clean_profile['game_world_parts'] = {
+        'industrial': {'unlocked': True},
+        'midtown': {'unlocked': True},
+        'suburb': {'unlocked': True},
+        'port': {'unlocked': True},
+        'mountain': {'unlocked': True},
+        'sunset': {'unlocked': True}
+    }
+    
+    ok, err = save_profile(token, clean_profile)
+    if ok:
+        return True, clean_profile
+    return False, f"Failed to save repaired profile: {err}"
 
 def save_profile(token, profile, retries=5):
     for attempt in range(retries):
@@ -515,6 +610,29 @@ def inject_currency(profile, silver=50000000, gold=9999, xp=999999):
     profile["premium_length"] = 99999999
     profile["is_pass_owned"] = True
     profile["battle_pass_resource_amount"] = 999999
+
+    # Anti-Ban Protection: Synchronize total lifetime statistics
+    # CarX Street bans accounts where wallet currency exceeds lifetime earned stats
+    stats = profile.setdefault("statistics", {})
+    cur_total_soft = stats.get("statistic_total_soft", {}).get("amount", 0) if isinstance(stats.get("statistic_total_soft"), dict) else 0
+    cur_total_hard = stats.get("statistic_total_hard", {}).get("amount", 0) if isinstance(stats.get("statistic_total_hard"), dict) else 0
+    
+    needed_soft = max(float(cur_total_soft), float(silver) + 5000000.0)
+    needed_hard = max(float(cur_total_hard), float(gold) + 500.0)
+    
+    stats["statistic_total_soft"] = {"amount": needed_soft}
+    stats["statistic_total_hard"] = {"amount": needed_hard}
+    
+    # Ensure reasonable play time stats so the account looks authentic
+    cur_play_time = stats.get("statistic_playing_time", {}).get("amount", 0) if isinstance(stats.get("statistic_playing_time"), dict) else 0
+    if cur_play_time < 3600:
+        play_secs = random.uniform(150, 300) * 3600
+        stats["statistic_playing_time"] = {"amount": round(play_secs, 2)}
+        stats["statistic_drive_time"] = {"amount": round(play_secs * 0.4, 2)}
+        stats["statistic_total_distance"] = {"amount": round((play_secs * 0.4 / 3600) * 75, 4)}
+        stats["statistic_races_completed"] = {"amount": float(int(play_secs / 300))}
+        stats["statistic_races_won"] = {"amount": float(int(play_secs / 300 * 0.7))}
+
     return profile
 
 def create_slot_data():

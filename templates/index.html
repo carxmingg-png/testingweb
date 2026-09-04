@@ -133,10 +133,16 @@
                 </div>
             </div>
 
-            <!-- Pass Badges Bar -->
-            <div style="margin-bottom: 24px; display: flex; gap: 10px; flex-wrap: wrap;">
-                <span id="badge-streetpass" class="badge-pill red">STREET PASS: LOCKED</span>
-                <span id="badge-premium" class="badge-pill red">PREMIUM: NONE</span>
+            <!-- Pass Badges Bar & Quick Tools -->
+            <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <span id="badge-streetpass" class="badge-pill red">STREET PASS: LOCKED</span>
+                    <span id="badge-premium" class="badge-pill red">PREMIUM: NONE</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button id="btn-sync-profile" class="hud-btn" style="font-size: 12px;" title="Re-sync profile from CarX servers">🔄 Re-Sync Profile</button>
+                    <button id="btn-repair-profile" class="hud-btn" style="border-color: var(--neon-magenta); color: var(--neon-magenta); font-size: 12px;" title="Fix corrupted profile or loading freeze">🔧 Repair Account Profile</button>
+                </div>
             </div>
 
             <!-- GOD MODE (ALL-IN-ONE) HERO BANNER -->
