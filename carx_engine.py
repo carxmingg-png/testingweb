@@ -19,6 +19,7 @@ import random
 import string
 import shutil
 import requests
+from datetime import datetime
 
 # ============================================================
 # API ENDPOINTS & CONSTANTS
@@ -686,30 +687,176 @@ def get_car_data():
                 return extracted
     return None
 
-def implant_cars(profile, cars_to_add):
-    if not cars_to_add:
-        return profile, 0
-    existing = profile.get('cars', {}).get('items', {})
-    if not isinstance(existing, dict):
-        existing = {}
-    max_id = 1000
-    for cid in existing:
+def get_active_fleet_meta():
+    """Returns metadata about the active stored car fleet."""
+    load_strings()
+    meta = {}
+    if os.path.exists(ASSETS_CACHE_FILE):
         try:
-            if int(cid) > max_id:
-                max_id = int(cid)
+            with open(ASSETS_CACHE_FILE, "r", encoding="utf-8") as f:
+                d = json.load(f)
+                meta = d.get("fleet_meta", {})
         except Exception:
             pass
-    added = 0
-    for _, cfg in cars_to_add.items():
-        if not isinstance(cfg, dict) or not cfg.get('__desc_id'):
+    if not meta:
+        cars = get_car_data()
+        if cars:
+            models = [c.get("__desc_id") for c in cars.values() if isinstance(c, dict) and c.get("__desc_id")]
+            uniq = sorted(list(set(models)))
+            meta = {
+                "total_cars": len(cars),
+                "unique_models": len(uniq),
+                "source_nickname": "Stored Fleet",
+                "models_sample": uniq[:12],
+                "updated_at": "Ready"
+            }
+        else:
+            meta = {
+                "total_cars": 0,
+                "unique_models": 0,
+                "source_nickname": "None",
+                "models_sample": [],
+                "updated_at": "None"
+            }
+    return meta
+
+def extract_cars_from_source_account(email, password):
+    """
+    Extracts all cars from any source account (matching CARSONLY.py.py),
+    saves them permanently into carx_assets.json and updates active memory.
+    """
+    global COMPRESSED_CARS_STRING
+    token, carx_id, err = login_account(email, password)
+    if not token:
+        return False, f"Login failed: {err}", None
+    
+    profile, err_prof = get_profile(token)
+    if not profile:
+        return False, f"Failed to download profile: {err_prof}", None
+    
+    cars = profile.get('cars', {}).get('items', {})
+    if not cars or not isinstance(cars, dict):
+        return False, "No vehicles found in source account profile", None
+    
+    extracted = {}
+    for cid, cfg in cars.items():
+        if isinstance(cfg, dict) and cfg.get('__desc_id'):
+            extracted[str(cid)] = json.loads(json.dumps(cfg))
+    
+    if not extracted:
+        return False, "No valid vehicle configurations extracted", None
+    
+    car_list = [v.get('__desc_id') for v in extracted.values()]
+    unique_models = sorted(list(set(car_list)))
+    source_nick = profile.get('profile', {}).get('nickname') or profile.get('nickname', 'Unknown Driver')
+    
+    # Pack into compressed CarX string format
+    payload = {'cars': {'seed': max(1086, len(extracted) + 1000), 'items': extracted}}
+    new_compressed_str = compress_data(payload)
+    
+    # Store in memory
+    COMPRESSED_CARS_STRING = new_compressed_str
+    
+    # Save permanently into carx_assets.json
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    fleet_meta = {
+        'total_cars': len(extracted),
+        'unique_models': len(unique_models),
+        'source_nickname': source_nick,
+        'source_carx_id': str(carx_id),
+        'models_sample': unique_models[:15],
+        'updated_at': now_str
+    }
+    
+    try:
+        data_to_write = {}
+        if os.path.exists(ASSETS_CACHE_FILE):
+            try:
+                with open(ASSETS_CACHE_FILE, 'r', encoding='utf-8') as f:
+                    data_to_write = json.load(f)
+            except Exception:
+                pass
+        data_to_write['cars'] = new_compressed_str
+        data_to_write['fleet_meta'] = fleet_meta
+        with open(ASSETS_CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data_to_write, f, indent=2)
+    except Exception as e:
+        print(f"Warning: Could not cache fleet to file: {e}")
+    
+    return True, f"Successfully extracted {len(extracted)} cars ({len(unique_models)} unique models) from {source_nick}!", fleet_meta
+
+def implant_cars(profile, cars_to_add):
+    """
+    Adds cars to target account using the exact CARSONLY.py.py algorithm:
+    - Automatically checks existing models to avoid duplicates.
+    - Preserves all existing progress, settings, and stats.
+    - Updates car_models index to prevent 'Loading Profile' freeze.
+    Returns: (updated_profile, added_count, skipped_list)
+    """
+    if not cars_to_add:
+        return profile, 0, []
+    
+    existing_cars = profile.get('cars', {}).get('items', {})
+    if not isinstance(existing_cars, dict):
+        existing_cars = {}
+    
+    # Track existing models to avoid duplicate injection that corrupts profile
+    existing_models = set()
+    for car in existing_cars.values():
+        if isinstance(car, dict):
+            desc = car.get('__desc_id')
+            if desc:
+                existing_models.add(desc)
+    
+    # Find max existing item ID
+    max_id = 1000
+    for car_id in existing_cars.keys():
+        try:
+            cid = int(car_id)
+            if cid > max_id:
+                max_id = cid
+        except Exception:
+            pass
+    
+    new_cars_added = 0
+    skipped = []
+    
+    for _, src_car in cars_to_add.items():
+        if not isinstance(src_car, dict):
             continue
+        desc_id = src_car.get('__desc_id')
+        if not desc_id:
+            continue
+        
+        # Skip if target already has this model
+        if desc_id in existing_models:
+            skipped.append(desc_id)
+            continue
+        
         max_id += 1
-        existing[str(max_id)] = json.loads(json.dumps(cfg))
-        added += 1
-    profile['cars'] = {'seed': max(1000, max_id+1), 'items': existing}
-    if profile.get('current_car_id') not in existing:
-        profile['current_car_id'] = next(iter(existing.keys()), '1000')
-    return profile, added
+        new_car = json.loads(json.dumps(src_car))
+        existing_cars[str(max_id)] = new_car
+        existing_models.add(desc_id)
+        new_cars_added += 1
+    
+    # Update cars section
+    profile['cars'] = {
+        'seed': max(1000, max_id + 1),
+        'items': existing_cars
+    }
+    
+    # Synchronize car_models index so game engine never hangs on Loading Profile
+    if 'car_models' in profile and isinstance(profile['car_models'], dict) and 'keys' in profile['car_models']:
+        curr_keys = set(profile['car_models'].get('keys', []))
+        for desc_id in existing_models:
+            if desc_id not in curr_keys:
+                profile['car_models']['keys'].append(desc_id)
+                profile['car_models'].setdefault('values', []).append(1)
+    
+    if profile.get('current_car_id') not in existing_cars:
+        profile['current_car_id'] = next(iter(existing_cars.keys()), '1000')
+    
+    return profile, new_cars_added, skipped
 
 def get_blueprint_profile():
     load_strings()

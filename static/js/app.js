@@ -558,7 +558,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // NEW DEDICATED ADMIN COMMAND CENTER LOGIC
     // ============================================================
     async function loadAdminCommandCenter() {
-        await Promise.all([loadAdminStats(), loadAdminKeys()]);
+        await Promise.all([loadAdminStats(), loadAdminKeys(), loadFleetStatus()]);
+    }
+
+    async function loadFleetStatus() {
+        const titleEl = document.getElementById('fleet-status-title');
+        const modelsEl = document.getElementById('fleet-status-models');
+        if (!titleEl) return;
+        try {
+            const res = await fetch('/api/admin/cars/status');
+            const data = await res.json();
+            if (res.ok && data.fleet) {
+                const f = data.fleet;
+                titleEl.innerHTML = `<span style="color: var(--neon-green);">●</span> ${f.total_cars || 0} Tuned Vehicles <span style="font-size: 14px; color: var(--text-muted); font-weight: normal;">(${f.unique_models || 0} unique models)</span>`;
+                const models = (f.models_sample || []).slice(0, 10).join(', ');
+                modelsEl.innerHTML = `Donor: <b>${f.source_nickname || 'Preset'}</b> | Stored: ${f.updated_at || 'Ready'} | Models: <span style="color: var(--neon-cyan);">${models || 'None'}</span>...`;
+            }
+        } catch (e) {
+            titleEl.textContent = 'Could not load fleet status';
+        }
     }
 
     async function loadAdminStats() {
@@ -886,6 +904,65 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (err) {
             showToast('Failed to clear keys.', 'error');
+        }
+    });
+
+    // ============================================================
+    // FLEET EXTRACTOR & PERMANENT STORAGE HANDLERS
+    // ============================================================
+    document.getElementById('btn-refresh-fleet-status')?.addEventListener('click', () => {
+        window.CyberAudio.playClick();
+        loadFleetStatus();
+        showToast('🔄 Stored fleet status refreshed!', 'info');
+    });
+
+    document.getElementById('btn-extract-fleet')?.addEventListener('click', async () => {
+        const email = document.getElementById('fleet-src-email')?.value.trim();
+        const password = document.getElementById('fleet-src-password')?.value.trim();
+        const feedback = document.getElementById('fleet-extract-feedback');
+        const btn = document.getElementById('btn-extract-fleet');
+
+        if (!email || !password) {
+            showToast('⚠️ Please enter donor account email and password.', 'error');
+            window.CyberAudio.playError();
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '⏳ EXTRACTING...';
+        feedback.style.display = 'block';
+        feedback.style.color = 'var(--neon-cyan)';
+        feedback.textContent = `Connecting to donor account ${email}... downloading tuned car fleet...`;
+        window.CyberAudio.playBoost();
+
+        try {
+            const res = await fetch('/api/admin/cars/extract', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                feedback.style.color = 'var(--neon-green)';
+                feedback.innerHTML = `✅ ${data.message}`;
+                showToast(data.message, 'success');
+                window.CyberAudio.playSuccess();
+                document.getElementById('fleet-src-password').value = '';
+                loadFleetStatus();
+            } else {
+                feedback.style.color = 'var(--neon-magenta)';
+                feedback.textContent = `❌ ${data.detail || 'Extraction failed.'}`;
+                showToast(data.detail || 'Extraction failed.', 'error');
+                window.CyberAudio.playError();
+            }
+        } catch (err) {
+            feedback.style.color = 'var(--neon-magenta)';
+            feedback.textContent = '❌ Network connection error.';
+            showToast('Extraction network error.', 'error');
+            window.CyberAudio.playError();
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '⚡ EXTRACT & STORE FLEET';
         }
     });
 

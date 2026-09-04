@@ -348,7 +348,53 @@
                             </button>
                         </div>
                     </div>
+            </div>
+
+            <!-- Fleet Extractor & Storage Card -->
+            <div class="cyber-card" style="border-color: rgba(0, 240, 255, 0.4); margin-bottom: 24px; background: linear-gradient(135deg, rgba(13,17,23,0.95), rgba(18,22,40,0.95));">
+                <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h3 class="card-title"><span class="icon">🏎️</span> CAR FLEET EXTRACTOR & PERMANENT STORAGE</h3>
+                        <p style="color: var(--text-muted); font-size: 13px; font-family: var(--font-mono); margin-top: 4px;">
+                            Extract tuned vehicle collections from any donor account. The database permanently remembers the fleet so you can inject it into any account without logging into the source account again.
+                        </p>
+                    </div>
+                    <span class="badge-pill" style="background: rgba(0,240,255,0.15); color: var(--neon-cyan); border: 1px solid var(--neon-cyan);">
+                        CARSONLY ENGINE v2
+                    </span>
                 </div>
+
+                <!-- Active Stored Fleet Banner -->
+                <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(0,240,255,0.2); border-radius: 8px; padding: 14px 18px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <div style="font-size: 11px; font-family: var(--font-mono); color: var(--neon-cyan); text-transform: uppercase; letter-spacing: 1.5px;">ACTIVE STORED FLEET IN DATABASE</div>
+                        <div id="fleet-status-title" style="font-size: 18px; font-weight: bold; color: #fff; margin-top: 4px; font-family: var(--font-display);">
+                            Loading fleet status...
+                        </div>
+                        <div id="fleet-status-models" style="font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 4px;">
+                            Models: ...
+                        </div>
+                    </div>
+                    <button id="btn-refresh-fleet-status" class="hud-btn" style="font-size: 12px;">🔄 Refresh Stored Fleet</button>
+                </div>
+
+                <!-- Extractor Form -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: flex-end;">
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <label class="input-label">DONOR / SOURCE ACCOUNT EMAIL</label>
+                        <input id="fleet-src-email" type="email" class="cyber-input" placeholder="donor@carx.com">
+                    </div>
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <label class="input-label">DONOR / SOURCE ACCOUNT PASSWORD</label>
+                        <input id="fleet-src-password" type="password" class="cyber-input" placeholder="••••••••">
+                    </div>
+                    <div>
+                        <button id="btn-extract-fleet" class="cyber-btn" style="background: linear-gradient(135deg, rgba(0,240,255,0.2), rgba(112,0,255,0.2)); border-color: var(--neon-cyan); white-space: nowrap; height: 42px;">
+                            ⚡ EXTRACT & STORE FLEET
+                        </button>
+                    </div>
+                </div>
+                <div id="fleet-extract-feedback" style="margin-top: 10px; font-size: 13px; font-family: var(--font-mono); display: none;"></div>
             </div>
 
             <!-- Full Key Inventory Table Card -->

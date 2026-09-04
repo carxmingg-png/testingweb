@@ -105,6 +105,10 @@ class AdminKeyUpdateRequest(BaseModel):
 class AdminKeyRevokeRequest(BaseModel):
     key: str
 
+class AdminExtractFleetRequest(BaseModel):
+    email: str
+    password: str
+
 # ============================================================
 # ROUTES: WEB PAGES & HEALTH
 # ============================================================
@@ -392,7 +396,7 @@ def api_boost_cars(payload: CarsBoostRequest, request: Request):
         selected = dict(random.sample(list(car_data.items()), cnt))
         lbl = f"{cnt} Custom Vehicles"
     
-    updated_profile, added = carx_engine.implant_cars(session["profile"], selected)
+    updated_profile, added, skipped = carx_engine.implant_cars(session["profile"], selected)
     ok, err = carx_engine.save_profile(session["token"], updated_profile)
     if not ok:
         raise HTTPException(status_code=500, detail=f"Failed to save cars: {err}")
@@ -401,10 +405,14 @@ def api_boost_cars(payload: CarsBoostRequest, request: Request):
     carx_engine.consume_one_time_key_if_applicable(session["user_identifier"])
     
     total_cars = len(updated_profile.get("cars", {}).get("items", {}))
+    skipped_count = len(skipped)
+    skip_msg = f" ({skipped_count} already owned models safely skipped)" if skipped_count > 0 else ""
     return {
         "success": True,
-        "message": f"🚗 Injected {added} cars from {lbl}! Total in garage: {total_cars}",
+        "message": f"🚗 Injected {added} cars from {lbl}!{skip_msg} Total in garage: {total_cars}",
         "added": added,
+        "skipped": skipped_count,
+        "skipped_models": skipped[:10],
         "total_cars": total_cars
     }
 
@@ -548,6 +556,36 @@ def api_admin_clear_claimed(request: Request):
     
     count = carx_engine.clear_claimed_keys()
     return {"success": True, "message": f"🧹 Cleared {count} claimed keys from database."}
+
+# ============================================================
+# API: ADMIN FLEET EXTRACTOR & MANAGER
+# ============================================================
+@app.get("/api/admin/cars/status")
+def api_admin_fleet_status(request: Request):
+    session = get_session(request)
+    require_admin(session)
+    meta = carx_engine.get_active_fleet_meta()
+    return {"success": True, "fleet": meta}
+
+@app.post("/api/admin/cars/extract")
+def api_admin_extract_fleet(payload: AdminExtractFleetRequest, request: Request):
+    session = get_session(request)
+    require_admin(session)
+    
+    email = payload.email.strip()
+    password = payload.password.strip()
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Source Account Email and Password are required.")
+    
+    ok, msg, meta = carx_engine.extract_cars_from_source_account(email, password)
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    
+    return {
+        "success": True,
+        "message": msg,
+        "fleet": meta
+    }
 
 # ============================================================
 # STARTUP FOR DIRECT RUN
