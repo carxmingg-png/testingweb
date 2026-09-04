@@ -89,6 +89,19 @@ class CarsBoostRequest(BaseModel):
 class AdminKeyGenerateRequest(BaseModel):
     duration: str  # "1time", "1d", "30d", "lifetime"
 
+class AdminCustomKeyRequest(BaseModel):
+    key_name: str
+    duration: str = "1time"
+    custom_days: Optional[int] = None
+    expires_at: Optional[float] = None
+
+class AdminKeyUpdateRequest(BaseModel):
+    old_key: str
+    new_key: Optional[str] = None
+    duration: Optional[str] = None
+    expires_at: Optional[float] = None
+    used: Optional[bool] = None
+
 class AdminKeyRevokeRequest(BaseModel):
     key: str
 
@@ -469,6 +482,42 @@ def api_admin_list_keys(request: Request):
     db = carx_engine.load_db()
     keys = db.get("keys", {})
     return {"success": True, "keys": keys, "total": len(keys)}
+
+@app.get("/api/admin/stats")
+def api_admin_stats(request: Request):
+    session = get_session(request)
+    require_admin(session)
+    return {"success": True, "stats": carx_engine.get_admin_stats()}
+
+@app.post("/api/admin/keys/custom")
+def api_admin_create_custom_key(payload: AdminCustomKeyRequest, request: Request):
+    session = get_session(request)
+    require_admin(session)
+    
+    exp = payload.expires_at
+    if exp is None and payload.custom_days:
+        exp = time.time() + (payload.custom_days * 86400)
+    
+    ok, msg, k = carx_engine.create_custom_key(payload.key_name, payload.duration, exp)
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True, "message": msg, "key": k}
+
+@app.put("/api/admin/keys/update")
+def api_admin_update_key(payload: AdminKeyUpdateRequest, request: Request):
+    session = get_session(request)
+    require_admin(session)
+    
+    ok, msg, target_key = carx_engine.update_key(
+        old_key=payload.old_key,
+        new_key=payload.new_key,
+        duration=payload.duration,
+        expires_at=payload.expires_at,
+        used=payload.used
+    )
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True, "message": msg, "key": target_key}
 
 @app.post("/api/admin/keys/generate")
 def api_admin_generate_key(payload: AdminKeyGenerateRequest, request: Request):

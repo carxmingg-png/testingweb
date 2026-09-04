@@ -288,6 +288,118 @@ def revoke_key(key_str):
     save_db(db)
     return removed_key or len(to_remove) > 0, len(to_remove)
 
+def create_custom_key(key_name, duration="1time", expires_at=None):
+    """Creates a custom named key with custom duration/expiration."""
+    db = load_db()
+    k = key_name.strip().upper()
+    if not k:
+        return False, "Key name cannot be empty", None
+    if k in ["MINGFU", "DADDYMINGFU"]:
+        return False, "Cannot use master admin key names", None
+    if k in db.get("keys", {}):
+        return False, f"Key '{k}' already exists in database", None
+
+    # Calculate expiration timestamp if duration is 1d/30d and expires_at not provided
+    now = time.time()
+    if expires_at is None:
+        if duration == "1d":
+            expires_at = now + 86400
+        elif duration == "30d":
+            expires_at = now + (30 * 86400)
+        else:
+            expires_at = None
+
+    db["keys"][k] = {
+        "duration": duration,
+        "expires_at": expires_at,
+        "used": False,
+        "used_by": None,
+        "redeemed_at": None,
+        "created_at": now
+    }
+    save_db(db)
+    return True, f"Created custom key {k} ({duration})", k
+
+def update_key(old_key, new_key=None, duration=None, expires_at=None, used=None):
+    """Edits an existing key on the spot: rename, change duration, update expiry date, or reset usage status."""
+    db = load_db()
+    old_k = old_key.strip().upper()
+    keys = db.get("keys", {})
+    if old_k not in keys:
+        return False, f"Key '{old_k}' not found in database", old_k
+
+    target_key = old_k
+    key_info = keys[old_k]
+
+    # 1. Rename Key
+    if new_key:
+        new_k = new_key.strip().upper()
+        if new_k != old_k:
+            if new_k in keys:
+                return False, f"Cannot rename: Key '{new_k}' already exists", old_k
+            if new_k in ["MINGFU", "DADDYMINGFU"]:
+                return False, "Cannot rename to master admin key names", old_k
+            # Move to new key
+            keys[new_k] = key_info
+            keys.pop(old_k, None)
+            target_key = new_k
+            # Update user references
+            for uid, uinfo in db.get("users", {}).items():
+                if uinfo.get("key") == old_k:
+                    uinfo["key"] = new_k
+
+    # 2. Update Duration
+    if duration is not None:
+        key_info["duration"] = duration
+        if duration in ["1time", "lifetime"] and expires_at is None:
+            key_info["expires_at"] = None
+        elif duration == "1d" and expires_at is None:
+            key_info["expires_at"] = time.time() + 86400
+        elif duration == "30d" and expires_at is None:
+            key_info["expires_at"] = time.time() + (30 * 86400)
+
+    # 3. Update Expiration Date
+    if expires_at is not None:
+        key_info["expires_at"] = expires_at
+        # Update user record if redeemed
+        for uid, uinfo in db.get("users", {}).items():
+            if uinfo.get("key") == target_key:
+                uinfo["expires_at"] = expires_at
+
+    # 4. Update Usage / Claim Status
+    if used is not None:
+        if not used:
+            # Reset / unclaim key
+            key_info["used"] = False
+            key_info["used_by"] = None
+            key_info["redeemed_at"] = None
+            # Remove from users mapping so someone else can claim it
+            to_remove_users = [uid for uid, uinfo in db.get("users", {}).items() if uinfo.get("key") == target_key]
+            for uid in to_remove_users:
+                db["users"].pop(uid, None)
+        else:
+            key_info["used"] = True
+
+    save_db(db)
+    return True, f"Key '{target_key}' updated successfully on the spot!", target_key
+
+def get_admin_stats():
+    """Returns quick metrics for admin dashboard."""
+    db = load_db()
+    keys = db.get("keys", {})
+    total = len(keys)
+    claimed = sum(1 for v in keys.values() if v.get("used", False))
+    available = total - claimed
+    admins_count = len(db.get("admins", []))
+    users_count = len(db.get("users", []))
+    return {
+        "total_keys": total,
+        "available_keys": available,
+        "claimed_keys": claimed,
+        "total_admins": admins_count,
+        "active_users": users_count
+    }
+
 def clear_claimed_keys():
     """Removes all claimed keys to clean database."""
     db = load_db()
@@ -297,6 +409,7 @@ def clear_claimed_keys():
         keys.pop(k, None)
     save_db(db)
     return len(to_pop)
+
 
 # ============================================================
 # COMPRESSION / DECOMPRESSION HELPERS

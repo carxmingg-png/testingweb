@@ -26,15 +26,21 @@
                 </div>
             </div>
 
+            <!-- Top Center Mode Navigator (Visible for Admins) -->
+            <div id="section-nav" class="section-nav" style="display: none;">
+                <button id="nav-booster-btn" class="nav-tab active">🎮 BOOSTER HUB</button>
+                <button id="nav-admin-btn" class="nav-tab">👑 ADMIN COMMAND CENTER</button>
+            </div>
+
             <div class="hud-actions">
                 <div id="license-badge" class="license-badge">STATUS: CHECKING...</div>
                 <button id="sound-toggle-btn" class="hud-btn">🔊 Sound: ON</button>
-                <button id="admin-btn" class="hud-btn admin-btn" style="display: none;">👑 Admin Portal</button>
+                <button id="admin-quick-btn" class="hud-btn admin-btn" style="display: none;">👑 Admin Center</button>
             </div>
         </header>
 
         <!-- ============================================================
-             SECTION: AUTH GATEWAY (LOGIN & BLUEPRINT REGISTER)
+             SECTION 1: AUTH GATEWAY (LOGIN & BLUEPRINT REGISTER)
              ============================================================ -->
         <section id="auth-section" class="auth-panel" style="display: none;">
             <div class="cyber-card">
@@ -83,7 +89,7 @@
         </section>
 
         <!-- ============================================================
-             SECTION: MAIN DASHBOARD & BOOST HUB
+             SECTION 2: MAIN DASHBOARD & BOOST HUB
              ============================================================ -->
         <section id="dashboard-section" style="display: none;">
             <!-- User Status Top Bar -->
@@ -162,7 +168,6 @@
                             🥈 MEDIUM PACK (10M Silver, 5,000 Gold, 100k XP)
                         </button>
                     </div>
-                    <!-- Custom inputs -->
                     <details style="margin-top: 10px; font-family: var(--font-mono); font-size: 13px;">
                         <summary style="color: var(--neon-cyan); cursor: pointer; margin-bottom: 12px;">Custom Injection Values</summary>
                         <div class="input-group">
@@ -251,10 +256,156 @@
                 </div>
             </div>
         </section>
+
+        <!-- ============================================================
+             SECTION 3: NEW DEDICATED ADMIN COMMAND CENTER
+             ============================================================ -->
+        <section id="admin-section" style="display: none;">
+            <!-- Admin Top Overview Stats -->
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">🔑 Total Keys in Database</div>
+                    <div id="admin-stat-total" class="stat-value" style="color: var(--neon-cyan);">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">✨ Available / Fresh Keys</div>
+                    <div id="admin-stat-avail" class="stat-value" style="color: var(--neon-green);">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">🔒 Claimed / Active Keys</div>
+                    <div id="admin-stat-claimed" class="stat-value" style="color: var(--neon-magenta);">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">👑 Admin Accounts</div>
+                    <div id="admin-stat-admins" class="stat-value" style="color: var(--neon-amber);">0</div>
+                </div>
+            </div>
+
+            <!-- Admin Action Cards Grid -->
+            <div class="actions-grid">
+                <!-- Card 1: Custom Key Generator -->
+                <div class="cyber-card amber-edge">
+                    <div class="card-header">
+                        <h3 class="card-title"><span class="icon">✨</span> CREATE CUSTOM LICENSE KEY</h3>
+                        <span class="badge-pill" style="background: rgba(255,170,0,0.15); color: var(--neon-amber); border: 1px solid var(--neon-amber);">CUSTOM KEY ENGINE</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+                        Set your own custom key code (e.g. <code>VIP-SPEED</code>, <code>TURBO-PASS</code>, <code>DRAGON-2026</code>) with custom duration.
+                    </p>
+
+                    <div class="input-group">
+                        <label class="input-label">CUSTOM KEY CODE</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input id="custom-key-input" type="text" class="cyber-input" placeholder="VIP-CARX-PRO" style="text-transform: uppercase; font-weight: bold; letter-spacing: 1.5px;">
+                            <button id="btn-randomize-key" class="hud-btn" title="Generate Random Code">🎲 Randomize</button>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">DURATION TYPE</label>
+                        <select id="custom-key-duration" class="cyber-input" style="background: rgba(0,0,0,0.8); cursor: pointer;">
+                            <option value="1time">One-Time Use (Single Boost)</option>
+                            <option value="1d">1 Day (24 Hours)</option>
+                            <option value="30d">30 Days (1 Month)</option>
+                            <option value="lifetime">Lifetime Access</option>
+                            <option value="custom_days">Custom Number of Days</option>
+                        </select>
+                    </div>
+
+                    <div id="custom-days-group" class="input-group" style="display: none;">
+                        <label class="input-label">NUMBER OF DAYS</label>
+                        <input id="custom-days-input" type="number" class="cyber-input" placeholder="e.g. 7 or 60" min="1" max="3650" value="7">
+                    </div>
+
+                    <button id="btn-create-custom-key" class="cyber-btn amber-btn" style="margin-top: 10px;">
+                        ✨ GENERATE CUSTOM LICENSE KEY
+                    </button>
+                </div>
+
+                <!-- Card 2: 1-Click Quick Batch Generator -->
+                <div class="cyber-card">
+                    <div class="card-header">
+                        <h3 class="card-title"><span class="icon">⚡</span> 1-CLICK QUICK GENERATORS</h3>
+                        <span class="badge-pill" style="background: rgba(0,240,255,0.15); color: var(--neon-cyan); border: 1px solid var(--neon-cyan);">RANDOM CARX-XXXX</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+                        Quickly generate standard formatted keys with one click.
+                    </p>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+                        <button class="cyber-btn quick-gen-btn" data-duration="1time">🔑 1-Time Key</button>
+                        <button class="cyber-btn quick-gen-btn" data-duration="1d">🔑 1 Day Key</button>
+                        <button class="cyber-btn quick-gen-btn" data-duration="30d">🔑 30 Days Key</button>
+                        <button class="cyber-btn quick-gen-btn" data-duration="lifetime">🔑 Lifetime Key</button>
+                    </div>
+
+                    <!-- Quick Revoke by Name -->
+                    <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px;">
+                        <label class="input-label">QUICK REVOKE KEY</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input id="admin-quick-revoke-input" type="text" class="cyber-input" placeholder="Enter key to delete...">
+                            <button id="admin-quick-revoke-btn" class="hud-btn" style="border-color: var(--neon-magenta); color: var(--neon-magenta);">
+                                Revoke
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Full Key Inventory Table Card -->
+            <div class="cyber-card">
+                <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h3 class="card-title"><span class="icon">📋</span> LIVE LICENSE KEY INVENTORY & ON-THE-SPOT EDITOR</h3>
+                        <p style="color: var(--text-muted); font-size: 13px; font-family: var(--font-mono); margin-top: 4px;">
+                            Click ✏️ Edit to rename keys, change duration, modify expiration date, or reset usage status.
+                        </p>
+                    </div>
+
+                    <!-- Table Tools: Search & Filter -->
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <input id="admin-search-input" type="text" class="cyber-input" placeholder="🔍 Search keys or users..." style="width: 220px; padding: 8px 12px; font-size: 13px;">
+                        <div class="tab-nav" style="margin: 0; padding: 4px;">
+                            <button id="filter-all" class="tab-btn active" style="padding: 6px 12px; font-size: 12px;">All</button>
+                            <button id="filter-available" class="tab-btn" style="padding: 6px 12px; font-size: 12px;">Available</button>
+                            <button id="filter-claimed" class="tab-btn" style="padding: 6px 12px; font-size: 12px;">Claimed</button>
+                        </div>
+                        <button id="admin-clear-claimed-full-btn" class="hud-btn" style="font-size: 12px;">
+                            🧹 Clear Claimed
+                        </button>
+                        <button id="admin-refresh-table-btn" class="hud-btn" title="Refresh Table">
+                            🔄
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="table-responsive">
+                    <table class="cyber-table">
+                        <thead>
+                            <tr>
+                                <th>KEY CODE</th>
+                                <th>DURATION</th>
+                                <th>STATUS</th>
+                                <th>CLAIMED BY</th>
+                                <th>EXPIRES AT</th>
+                                <th style="text-align: center;">ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-keys-tbody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                                    Loading key inventory from database...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     </div>
 
     <!-- ============================================================
-         MODAL: LICENSE KEY GATE
+         MODAL 1: LICENSE KEY GATE (INITIAL ACCESS)
          ============================================================ -->
     <div id="key-gate-modal" class="cyber-modal">
         <div class="modal-content">
@@ -268,7 +419,7 @@
 
             <div class="input-group">
                 <label class="input-label">LICENSE KEY / MASTER KEY</label>
-                <input id="license-key-input" type="text" class="cyber-input" placeholder="CARX-XXXX-XXXX-XXXX" style="text-align: center; font-size: 18px; letter-spacing: 2px;">
+                <input id="license-key-input" type="text" class="cyber-input" placeholder="CARX-XXXX-XXXX-XXXX" style="text-align: center; font-size: 18px; letter-spacing: 2px; text-transform: uppercase;">
             </div>
 
             <button id="key-submit-btn" class="cyber-btn" style="margin-top: 10px;">
@@ -281,49 +432,59 @@
     </div>
 
     <!-- ============================================================
-         MODAL: ADMIN KEY MANAGER
+         MODAL 2: ON-THE-SPOT KEY EDITOR MODAL
          ============================================================ -->
-    <div id="admin-modal" class="cyber-modal">
-        <div class="modal-content" style="max-width: 680px;">
-            <button id="admin-modal-close" class="modal-close">&times;</button>
+    <div id="edit-key-modal" class="cyber-modal">
+        <div class="modal-content" style="max-width: 540px;">
+            <button id="edit-key-modal-close" class="modal-close">&times;</button>
             <div style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
-                <h2 style="font-family: var(--font-display); font-size: 20px; color: var(--neon-amber);">👑 ADMIN KEY PORTAL</h2>
+                <h2 style="font-family: var(--font-display); font-size: 19px; color: var(--neon-cyan);">✏️ EDIT LICENSE KEY ON THE SPOT</h2>
                 <p style="color: var(--text-muted); font-family: var(--font-mono); font-size: 12px;">
-                    Generate, revoke, and inspect license keys in <code>keys_db.json</code>.
+                    Modify key code, duration, expiration date, or reset usage status instantly.
                 </p>
             </div>
 
-            <!-- Key Generation Buttons -->
-            <div style="margin-bottom: 20px;">
-                <div class="input-label">GENERATE NEW LICENSE KEYS</div>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                    <button class="hud-btn admin-gen-btn" data-duration="1time">🔑 1-Time Use Key</button>
-                    <button class="hud-btn admin-gen-btn" data-duration="1d">🔑 1 Day Key</button>
-                    <button class="hud-btn admin-gen-btn" data-duration="30d">🔑 30 Days Key</button>
-                    <button class="hud-btn admin-gen-btn" data-duration="lifetime">🔑 Lifetime Key</button>
-                </div>
+            <input id="edit-original-key" type="hidden">
+
+            <div class="input-group">
+                <label class="input-label">KEY CODE (RENAME)</label>
+                <input id="edit-key-code" type="text" class="cyber-input" style="text-transform: uppercase; font-weight: bold; letter-spacing: 1.5px;">
             </div>
 
-            <!-- Revoke Key -->
-            <div style="margin-bottom: 20px;">
-                <div class="input-label">REVOKE LICENSE KEY</div>
-                <div style="display: flex; gap: 8px;">
-                    <input id="admin-revoke-key" type="text" class="cyber-input" placeholder="CARX-XXXX-XXXX-XXXX">
-                    <button id="admin-revoke-btn" class="hud-btn" style="border-color: var(--neon-magenta); color: var(--neon-magenta);">
-                        Revoke
-                    </button>
-                </div>
+            <div class="input-group">
+                <label class="input-label">DURATION TYPE</label>
+                <select id="edit-key-duration" class="cyber-input" style="background: rgba(0,0,0,0.8); cursor: pointer;">
+                    <option value="1time">One-Time Use</option>
+                    <option value="1d">1 Day</option>
+                    <option value="30d">30 Days</option>
+                    <option value="lifetime">Lifetime</option>
+                </select>
             </div>
 
-            <!-- Clear Claimed & Key List -->
-            <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                <div class="input-label" style="margin: 0;">ACTIVE DATABASE KEYS</div>
-                <button id="admin-clear-claimed-btn" class="hud-btn" style="font-size: 11px; padding: 4px 8px;">
-                    🧹 Clear Claimed
+            <div class="input-group">
+                <label class="input-label">EXACT EXPIRATION DATE & TIME (OPTIONAL)</label>
+                <input id="edit-key-expiry" type="datetime-local" class="cyber-input" style="color-scheme: dark;">
+                <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">
+                    Leave blank for lifetime/one-time, or select custom expiration.
+                </span>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">USAGE & CLAIM STATUS</label>
+                <select id="edit-key-status" class="cyber-input" style="background: rgba(0,0,0,0.8); cursor: pointer;">
+                    <option value="unclaimed">✨ Available (Unclaimed / Reset)</option>
+                    <option value="claimed">🔒 Claimed / Active</option>
+                </select>
+                <span id="edit-claimed-by-info" style="font-family: var(--font-mono); font-size: 12px; color: var(--neon-amber); margin-top: 4px; display: block;"></span>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 24px;">
+                <button id="btn-save-key-edit" class="cyber-btn" style="flex: 2;">
+                    💾 SAVE CHANGES ON THE SPOT
                 </button>
-            </div>
-            <div id="admin-keys-list" style="max-height: 220px; overflow-y: auto; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
-                Loading keys...
+                <button id="btn-delete-key-modal" class="hud-btn" style="flex: 1; border-color: var(--neon-magenta); color: var(--neon-magenta); justify-content: center;">
+                    ❌ Revoke Key
+                </button>
             </div>
         </div>
     </div>
